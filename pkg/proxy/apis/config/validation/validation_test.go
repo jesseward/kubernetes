@@ -166,6 +166,25 @@ func TestValidateKubeProxyConfiguration(t *testing.T) {
 			},
 			expectedErrs: field.ErrorList{field.Invalid(newPath.Child("SyncPeriod"), metav1.Duration{Duration: 5 * time.Second}, "must be greater than or equal to KubeProxyConfiguration.MinSyncPeriod")},
 		},
+		"FullSyncPeriod must be >= 0": {
+			mutateConfigFunc: func(config *kubeproxyconfig.KubeProxyConfiguration) {
+				config.FullSyncPeriod = metav1.Duration{Duration: -1 * time.Second}
+			},
+			expectedErrs: field.ErrorList{field.Invalid(newPath.Child("FullSyncPeriod"), metav1.Duration{Duration: -1 * time.Second}, "must be greater than or equal to 0")},
+		},
+		"FullSyncPeriod must be > SyncPeriod": {
+			mutateConfigFunc: func(config *kubeproxyconfig.KubeProxyConfiguration) {
+				config.SyncPeriod = metav1.Duration{Duration: 5 * time.Second}
+				config.FullSyncPeriod = metav1.Duration{Duration: 5 * time.Second}
+			},
+			expectedErrs: field.ErrorList{field.Invalid(newPath.Child("FullSyncPeriod"), metav1.Duration{Duration: 5 * time.Second}, "must be greater than KubeProxyConfiguration.SyncPeriod")},
+		},
+		"FullSyncPeriod can be 0": {
+			mutateConfigFunc: func(config *kubeproxyconfig.KubeProxyConfiguration) {
+				config.FullSyncPeriod = metav1.Duration{Duration: 0}
+			},
+			expectedErrs: field.ErrorList{},
+		},
 		"invalid DetectLocalMode": {
 			mutateConfigFunc: func(config *kubeproxyconfig.KubeProxyConfiguration) {
 				config.DetectLocalMode = "Guess"

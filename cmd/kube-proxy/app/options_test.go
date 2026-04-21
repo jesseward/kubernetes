@@ -198,6 +198,7 @@ nodePortAddresses:
 				},
 				MinSyncPeriod:    metav1.Duration{Duration: 10 * time.Second},
 				SyncPeriod:       metav1.Duration{Duration: 60 * time.Second},
+				FullSyncPeriod:   metav1.Duration{Duration: 1 * time.Hour},
 				ConfigSyncPeriod: metav1.Duration{Duration: 15 * time.Second},
 				Linux: kubeproxyconfig.KubeProxyLinuxConfiguration{
 					Conntrack: kubeproxyconfig.KubeProxyConntrackConfiguration{
