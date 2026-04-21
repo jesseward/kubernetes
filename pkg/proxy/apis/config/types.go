@@ -233,6 +233,9 @@ type KubeProxyConfiguration struct {
 	// '1m', '2h22m'). A value of 0 means every Service or EndpointSlice change will
 	// result in an immediate proxier resync.
 	MinSyncPeriod metav1.Duration
+	// fullSyncPeriod is the interval indicating how frequently a full sync is forced.
+	// A value of 0 disables periodic full syncs.
+	FullSyncPeriod metav1.Duration
 	// configSyncPeriod is how often configuration from the apiserver is refreshed. Must be greater
 	// than 0.
 	ConfigSyncPeriod metav1.Duration

@@ -96,6 +96,7 @@ func NewDualStackProxier(
 	sysctl utilsysctl.Interface,
 	syncPeriod time.Duration,
 	minSyncPeriod time.Duration,
+	fullSyncPeriod time.Duration,
 	masqueradeAll bool,
 	localhostNodePorts bool,
 	masqueradeBit int,
@@ -109,7 +110,7 @@ func NewDualStackProxier(
 ) (proxy.Provider, error) {
 	// Create an ipv4 instance of the single-stack proxier
 	ipv4Proxier, err := NewProxier(ctx, v1.IPv4Protocol, ipts[v1.IPv4Protocol], sysctl,
-		syncPeriod, minSyncPeriod, masqueradeAll, localhostNodePorts, masqueradeBit,
+		syncPeriod, minSyncPeriod, fullSyncPeriod, masqueradeAll, localhostNodePorts, masqueradeBit,
 		localDetectors[v1.IPv4Protocol], nodeName, nodeIPs[v1.IPv4Protocol],
 		recorder, healthzServer, nodePortAddresses, initOnly)
 	if err != nil {
@@ -117,7 +118,7 @@ func NewDualStackProxier(
 	}
 
 	ipv6Proxier, err := NewProxier(ctx, v1.IPv6Protocol, ipts[v1.IPv6Protocol], sysctl,
-		syncPeriod, minSyncPeriod, masqueradeAll, false, masqueradeBit,
+		syncPeriod, minSyncPeriod, fullSyncPeriod, masqueradeAll, false, masqueradeBit,
 		localDetectors[v1.IPv6Protocol], nodeName, nodeIPs[v1.IPv6Protocol],
 		recorder, healthzServer, nodePortAddresses, initOnly)
 	if err != nil {
@@ -155,6 +156,7 @@ type Proxier struct {
 	initialized          int32
 	syncRunner           *runner.BoundedFrequencyRunner // governs calls to syncProxyRules
 	syncPeriod           time.Duration
+	fullSyncPeriod       time.Duration
 	lastIPTablesCleanup  time.Time
 
 	// These are effectively const and do not need the mutex to be held.
@@ -218,6 +220,7 @@ func NewProxier(ctx context.Context,
 	sysctl utilsysctl.Interface,
 	syncPeriod time.Duration,
 	minSyncPeriod time.Duration,
+	fullSyncPeriod time.Duration,
 	masqueradeAll bool,
 	localhostNodePorts bool,
 	masqueradeBit int,
@@ -277,6 +280,7 @@ func NewProxier(ctx context.Context,
 		endpointsChanges:         proxy.NewEndpointsChangeTracker(ipFamily, nodeName, newEndpointInfo, nil),
 		needFullSync:             true,
 		syncPeriod:               syncPeriod,
+		fullSyncPeriod:           fullSyncPeriod,
 		iptables:                 ipt,
 		masqueradeAll:            masqueradeAll,
 		masqueradeMark:           masqueradeMark,
@@ -305,11 +309,15 @@ func NewProxier(ctx context.Context,
 		},
 	}
 
-	logger.V(2).Info("Iptables sync params", "minSyncPeriod", minSyncPeriod, "syncPeriod", syncPeriod, "maxSyncPeriod", proxyutil.FullSyncPeriod)
+	maxInterval := fullSyncPeriod
+	if maxInterval == 0 {
+		maxInterval = 100 * 365 * 24 * time.Hour // 100 years
+	}
+	logger.V(2).Info("Iptables sync params", "minSyncPeriod", minSyncPeriod, "syncPeriod", syncPeriod, "maxSyncPeriod", maxInterval)
 	// We pass syncPeriod to ipt.Monitor, which will call us only if it needs to.
 	// We need to pass *some* maxInterval to NewBoundedFrequencyRunner anyway though.
 	// time.Hour is arbitrary.
-	proxier.syncRunner = runner.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, proxyutil.FullSyncPeriod)
+	proxier.syncRunner = runner.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, maxInterval)
 
 	go ipt.Monitor(kubeProxyCanaryChain, []utiliptables.Table{utiliptables.TableMangle, utiliptables.TableNAT, utiliptables.TableFilter},
 		proxier.forceSyncProxyRules, syncPeriod, wait.NeverStop)
@@ -648,7 +656,7 @@ func (proxier *Proxier) syncProxyRules() (retryError error) {
 	// Keep track of how long syncs take.
 	start := time.Now()
 
-	doFullSync := proxier.needFullSync || (time.Since(proxier.lastFullSync) > proxyutil.FullSyncPeriod)
+	doFullSync := proxier.needFullSync || (proxier.fullSyncPeriod > 0 && time.Since(proxier.lastFullSync) > proxier.fullSyncPeriod)
 
 	defer func() {
 		metrics.SyncProxyRulesLatency.WithLabelValues(string(proxier.ipFamily)).Observe(metrics.SinceInSeconds(start))

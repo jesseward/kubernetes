@@ -68,6 +68,12 @@ func Validate(config *kubeproxyconfig.KubeProxyConfiguration) field.ErrorList {
 	if config.MinSyncPeriod.Duration > config.SyncPeriod.Duration {
 		allErrs = append(allErrs, field.Invalid(newPath.Child("SyncPeriod"), config.MinSyncPeriod, fmt.Sprintf("must be greater than or equal to %s", newPath.Child("MinSyncPeriod").String())))
 	}
+	if config.FullSyncPeriod.Duration < 0 {
+		allErrs = append(allErrs, field.Invalid(newPath.Child("FullSyncPeriod"), config.FullSyncPeriod, "must be greater than or equal to 0"))
+	}
+	if config.FullSyncPeriod.Duration > 0 && config.FullSyncPeriod.Duration <= config.SyncPeriod.Duration {
+		allErrs = append(allErrs, field.Invalid(newPath.Child("FullSyncPeriod"), config.FullSyncPeriod, fmt.Sprintf("must be greater than %s", newPath.Child("SyncPeriod").String())))
+	}
 
 	if netutils.ParseIPSloppy(config.BindAddress) == nil {
 		allErrs = append(allErrs, field.Invalid(newPath.Child("BindAddress"), config.BindAddress, "not a valid textual representation of an IP address"))
