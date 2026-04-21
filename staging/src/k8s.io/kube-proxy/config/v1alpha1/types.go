@@ -45,6 +45,9 @@ type KubeProxyIPTablesConfiguration struct {
 	// '1m', '2h22m'). A value of 0 means every Service or EndpointSlice change will
 	// result in an immediate iptables resync.
 	MinSyncPeriod metav1.Duration `json:"minSyncPeriod"`
+	// fullSyncPeriod is the interval indicating how frequently a full sync is forced.
+	// A value of 0 disables periodic full syncs.
+	FullSyncPeriod metav1.Duration `json:"fullSyncPeriod"`
 }
 
 // KubeProxyIPVSConfiguration contains ipvs-related configuration
@@ -58,6 +61,9 @@ type KubeProxyIPVSConfiguration struct {
 	// '2h22m'). A value of 0 means every Service or EndpointSlice change will result
 	// in an immediate IPVS resync.
 	MinSyncPeriod metav1.Duration `json:"minSyncPeriod"`
+	// fullSyncPeriod is the interval indicating how frequently a full sync is forced.
+	// A value of 0 disables periodic full syncs.
+	FullSyncPeriod metav1.Duration `json:"fullSyncPeriod"`
 	// scheduler is the IPVS scheduler to use
 	Scheduler string `json:"scheduler"`
 	// excludeCIDRs is a list of CIDRs which the ipvs proxier should not touch
@@ -94,6 +100,9 @@ type KubeProxyNFTablesConfiguration struct {
 	// '1m', '2h22m'). A value of 0 means every Service or EndpointSlice change will
 	// result in an immediate iptables resync.
 	MinSyncPeriod metav1.Duration `json:"minSyncPeriod"`
+	// fullSyncPeriod is the interval indicating how frequently a full sync is forced.
+	// A value of 0 disables periodic full syncs.
+	FullSyncPeriod metav1.Duration `json:"fullSyncPeriod"`
 }
 
 // KubeProxyConntrackConfiguration contains conntrack settings for

@@ -25,6 +25,7 @@ enableProfiling: false
 healthzBindAddress: 0.0.0.0:10256
 hostnameOverride: ""
 iptables:
+  fullSyncPeriod: 1h0m0s
   localhostNodePorts: true
   masqueradeAll: false
   masqueradeBit: 14
@@ -32,6 +33,7 @@ iptables:
   syncPeriod: 30s
 ipvs:
   excludeCIDRs: null
+  fullSyncPeriod: 0s
   minSyncPeriod: 0s
   scheduler: ""
   strictARP: false
@@ -52,6 +54,7 @@ logging:
 metricsBindAddress: 127.0.0.1:10249
 mode: ""
 nftables:
+  fullSyncPeriod: 0s
   masqueradeAll: false
   masqueradeBit: 14
   minSyncPeriod: 0s

@@ -74,6 +74,7 @@ func (in *KubeProxyConfiguration) DeepCopyInto(out *KubeProxyConfiguration) {
 	}
 	out.SyncPeriod = in.SyncPeriod
 	out.MinSyncPeriod = in.MinSyncPeriod
+	out.FullSyncPeriod = in.FullSyncPeriod
 	out.ConfigSyncPeriod = in.ConfigSyncPeriod
 	return
 }

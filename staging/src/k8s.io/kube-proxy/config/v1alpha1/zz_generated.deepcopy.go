@@ -146,6 +146,7 @@ func (in *KubeProxyIPTablesConfiguration) DeepCopyInto(out *KubeProxyIPTablesCon
 	}
 	out.SyncPeriod = in.SyncPeriod
 	out.MinSyncPeriod = in.MinSyncPeriod
+	out.FullSyncPeriod = in.FullSyncPeriod
 	return
 }
 
@@ -164,6 +165,7 @@ func (in *KubeProxyIPVSConfiguration) DeepCopyInto(out *KubeProxyIPVSConfigurati
 	*out = *in
 	out.SyncPeriod = in.SyncPeriod
 	out.MinSyncPeriod = in.MinSyncPeriod
+	out.FullSyncPeriod = in.FullSyncPeriod
 	if in.ExcludeCIDRs != nil {
 		in, out := &in.ExcludeCIDRs, &out.ExcludeCIDRs
 		*out = make([]string, len(*in))
@@ -195,6 +197,7 @@ func (in *KubeProxyNFTablesConfiguration) DeepCopyInto(out *KubeProxyNFTablesCon
 	}
 	out.SyncPeriod = in.SyncPeriod
 	out.MinSyncPeriod = in.MinSyncPeriod
+	out.FullSyncPeriod = in.FullSyncPeriod
 	return
 }
 

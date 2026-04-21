@@ -68933,8 +68933,14 @@ func schema_k8sio_kube_proxy_config_v1alpha1_KubeProxyIPTablesConfiguration(ref 
 							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
 						},
 					},
+					"fullSyncPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fullSyncPeriod is the interval indicating how frequently a full sync is forced. A value of 0 disables periodic full syncs.",
+							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
+						},
+					},
 				},
-				Required: []string{"masqueradeBit", "masqueradeAll", "localhostNodePorts", "syncPeriod", "minSyncPeriod"},
+				Required: []string{"masqueradeBit", "masqueradeAll", "localhostNodePorts", "syncPeriod", "minSyncPeriod", "fullSyncPeriod"},
 			},
 		},
 		Dependencies: []string{
@@ -68958,6 +68964,12 @@ func schema_k8sio_kube_proxy_config_v1alpha1_KubeProxyIPVSConfiguration(ref comm
 					"minSyncPeriod": {
 						SchemaProps: spec.SchemaProps{
 							Description: "minSyncPeriod is the minimum period between IPVS rule resyncs (e.g. '5s', '1m', '2h22m'). A value of 0 means every Service or EndpointSlice change will result in an immediate IPVS resync.",
+							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
+						},
+					},
+					"fullSyncPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fullSyncPeriod is the interval indicating how frequently a full sync is forced. A value of 0 disables periodic full syncs.",
 							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
 						},
 					},
@@ -69011,7 +69023,7 @@ func schema_k8sio_kube_proxy_config_v1alpha1_KubeProxyIPVSConfiguration(ref comm
 						},
 					},
 				},
-				Required: []string{"syncPeriod", "minSyncPeriod", "scheduler", "excludeCIDRs", "strictARP", "tcpTimeout", "tcpFinTimeout", "udpTimeout"},
+				Required: []string{"syncPeriod", "minSyncPeriod", "fullSyncPeriod", "scheduler", "excludeCIDRs", "strictARP", "tcpTimeout", "tcpFinTimeout", "udpTimeout"},
 			},
 		},
 		Dependencies: []string{
@@ -69053,8 +69065,14 @@ func schema_k8sio_kube_proxy_config_v1alpha1_KubeProxyNFTablesConfiguration(ref 
 							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
 						},
 					},
+					"fullSyncPeriod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fullSyncPeriod is the interval indicating how frequently a full sync is forced. A value of 0 disables periodic full syncs.",
+							Ref:         ref(metav1.Duration{}.OpenAPIModelName()),
+						},
+					},
 				},
-				Required: []string{"masqueradeBit", "masqueradeAll", "syncPeriod", "minSyncPeriod"},
+				Required: []string{"masqueradeBit", "masqueradeAll", "syncPeriod", "minSyncPeriod", "fullSyncPeriod"},
 			},
 		},
 		Dependencies: []string{

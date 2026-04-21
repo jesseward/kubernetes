@@ -205,6 +205,7 @@ func autoConvert_config_KubeProxyConfiguration_To_v1alpha1_KubeProxyConfiguratio
 	out.NodePortAddresses = *(*[]string)(unsafe.Pointer(&in.NodePortAddresses))
 	// WARNING: in.SyncPeriod requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinSyncPeriod requires manual conversion: does not exist in peer-type
+	// WARNING: in.FullSyncPeriod requires manual conversion: does not exist in peer-type
 	out.ConfigSyncPeriod = in.ConfigSyncPeriod
 	return nil
 }
@@ -247,6 +248,7 @@ func autoConvert_v1alpha1_KubeProxyIPTablesConfiguration_To_config_KubeProxyIPTa
 	out.LocalhostNodePorts = (*bool)(unsafe.Pointer(in.LocalhostNodePorts))
 	// WARNING: in.SyncPeriod requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinSyncPeriod requires manual conversion: does not exist in peer-type
+	// WARNING: in.FullSyncPeriod requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -264,6 +266,7 @@ func Convert_config_KubeProxyIPTablesConfiguration_To_v1alpha1_KubeProxyIPTables
 func autoConvert_v1alpha1_KubeProxyIPVSConfiguration_To_config_KubeProxyIPVSConfiguration(in *configv1alpha1.KubeProxyIPVSConfiguration, out *config.KubeProxyIPVSConfiguration, s conversion.Scope) error {
 	// WARNING: in.SyncPeriod requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinSyncPeriod requires manual conversion: does not exist in peer-type
+	// WARNING: in.FullSyncPeriod requires manual conversion: does not exist in peer-type
 	out.Scheduler = in.Scheduler
 	out.ExcludeCIDRs = *(*[]string)(unsafe.Pointer(&in.ExcludeCIDRs))
 	out.StrictARP = in.StrictARP
@@ -293,6 +296,7 @@ func autoConvert_v1alpha1_KubeProxyNFTablesConfiguration_To_config_KubeProxyNFTa
 	// WARNING: in.MasqueradeAll requires manual conversion: does not exist in peer-type
 	// WARNING: in.SyncPeriod requires manual conversion: does not exist in peer-type
 	// WARNING: in.MinSyncPeriod requires manual conversion: does not exist in peer-type
+	// WARNING: in.FullSyncPeriod requires manual conversion: does not exist in peer-type
 	return nil
 }
 
