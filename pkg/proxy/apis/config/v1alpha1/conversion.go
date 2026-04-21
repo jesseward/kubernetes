@@ -46,9 +46,11 @@ func Convert_config_KubeProxyConfiguration_To_v1alpha1_KubeProxyConfiguration(in
 	case config.ProxyModeNFTables:
 		out.NFTables.SyncPeriod = in.SyncPeriod
 		out.NFTables.MinSyncPeriod = in.MinSyncPeriod
+		out.NFTables.FullSyncPeriod = &in.FullSyncPeriod
 	default:
 		out.IPTables.SyncPeriod = in.SyncPeriod
 		out.IPTables.MinSyncPeriod = in.MinSyncPeriod
+		out.IPTables.FullSyncPeriod = &in.FullSyncPeriod
 	}
 
 	if len(in.DetectLocal.ClusterCIDRs) > 0 {
@@ -79,9 +81,15 @@ func Convert_v1alpha1_KubeProxyConfiguration_To_config_KubeProxyConfiguration(in
 	case config.ProxyModeNFTables:
 		out.SyncPeriod = in.NFTables.SyncPeriod
 		out.MinSyncPeriod = in.NFTables.MinSyncPeriod
+		if in.NFTables.FullSyncPeriod != nil {
+			out.FullSyncPeriod = *in.NFTables.FullSyncPeriod
+		}
 	default:
 		out.SyncPeriod = in.IPTables.SyncPeriod
 		out.MinSyncPeriod = in.IPTables.MinSyncPeriod
+		if in.IPTables.FullSyncPeriod != nil {
+			out.FullSyncPeriod = *in.IPTables.FullSyncPeriod
+		}
 	}
 
 	if len(in.ClusterCIDR) > 0 {

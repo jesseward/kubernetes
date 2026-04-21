@@ -93,6 +93,8 @@ type Options struct {
 	ipvsSyncPeriod        time.Duration
 	ipvsMinSyncPeriod     time.Duration
 	clusterCIDRs          string
+	iptablesFullSyncPeriod time.Duration
+	nftablesFullSyncPeriod time.Duration
 }
 
 // AddFlags adds flags to fs and binds them to options.
@@ -136,6 +138,8 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(o.config.IPTables.LocalhostNodePorts, "iptables-localhost-nodeports", ptr.Deref(o.config.IPTables.LocalhostNodePorts, true), "If false, kube-proxy will disable the legacy behavior of allowing NodePort services to be accessed via localhost. (Applies only to iptables mode and IPv4; localhost NodePorts are never allowed with other proxy modes or with IPv6.)")
 	fs.DurationVar(&o.iptablesSyncPeriod, "iptables-sync-period", o.config.SyncPeriod.Duration, "An interval (e.g. '5s', '1m', '2h22m') indicating how frequently various re-synchronizing and cleanup operations are performed. Must be greater than 0.")
 	fs.DurationVar(&o.iptablesMinSyncPeriod, "iptables-min-sync-period", o.config.MinSyncPeriod.Duration, "The minimum period between iptables rule resyncs (e.g. '5s', '1m', '2h22m'). A value of 0 means every Service or EndpointSlice change will result in an immediate iptables resync.")
+	fs.DurationVar(&o.iptablesFullSyncPeriod, "iptables-full-sync-period", o.config.FullSyncPeriod.Duration, "The maximum interval at which iptables rules are refreshed. A value of 0 means periodic full syncs are disabled.")
+	fs.DurationVar(&o.nftablesFullSyncPeriod, "nftables-full-sync-period", o.config.FullSyncPeriod.Duration, "The maximum interval at which nftables rules are refreshed. A value of 0 means periodic full syncs are disabled.")
 
 	fs.DurationVar(&o.ipvsSyncPeriod, "ipvs-sync-period", o.config.SyncPeriod.Duration, "An interval (e.g. '5s', '1m', '2h22m') indicating how frequently various re-synchronizing and cleanup operations are performed. Must be greater than 0.")
 	fs.DurationVar(&o.ipvsMinSyncPeriod, "ipvs-min-sync-period", o.config.MinSyncPeriod.Duration, "The minimum period between IPVS rule resyncs (e.g. '5s', '1m', '2h22m'). A value of 0 means every Service or EndpointSlice change will result in an immediate IPVS resync.")
@@ -340,6 +344,12 @@ func (o *Options) processV1Alpha1Flags(fs *pflag.FlagSet) {
 	}
 	if fs.Changed("iptables-min-sync-period") && o.config.Mode != kubeproxyconfig.ProxyModeIPVS {
 		o.config.MinSyncPeriod.Duration = o.iptablesMinSyncPeriod
+	}
+	if fs.Changed("iptables-full-sync-period") && o.config.Mode == kubeproxyconfig.ProxyModeIPTables {
+		o.config.FullSyncPeriod.Duration = o.iptablesFullSyncPeriod
+	}
+	if fs.Changed("nftables-full-sync-period") && o.config.Mode == kubeproxyconfig.ProxyModeNFTables {
+		o.config.FullSyncPeriod.Duration = o.nftablesFullSyncPeriod
 	}
 	if fs.Changed("ipvs-sync-period") && o.config.Mode == kubeproxyconfig.ProxyModeIPVS {
 		o.config.SyncPeriod.Duration = o.ipvsSyncPeriod

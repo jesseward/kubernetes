@@ -6696,3 +6696,34 @@ func TestBadIPs(t *testing.T) {
 
 	assertIPTablesRulesEqual(t, getLine(), true, expected, fp.iptablesData.String())
 }
+
+func TestFullSyncPeriod(t *testing.T) {
+	klogtesting.NewTestContext(t)
+	ipt := iptablestest.NewFake()
+	fp := NewFakeProxier(ipt)
+
+	// Set fullSyncPeriod to 0 (disabled)
+	fp.fullSyncPeriod = 0
+	fp.needFullSync = false
+	fp.lastFullSync = time.Now().Add(-2 * time.Hour) // Long ago
+
+	fp.syncProxyRules()
+
+	// Verify that it did NOT do a full sync!
+	if fp.lastFullSync.Before(time.Now().Add(-1 * time.Hour)) {
+		// It was not updated! Success!
+	} else {
+		t.Errorf("Expected full sync to be disabled, but lastFullSync was updated")
+	}
+
+	// Now set fullSyncPeriod to 1h
+	fp.fullSyncPeriod = 1 * time.Hour
+	fp.syncProxyRules()
+
+	// Verify that it DID do a full sync!
+	if fp.lastFullSync.After(time.Now().Add(-1 * time.Minute)) {
+		// It was updated! Success!
+	} else {
+		t.Errorf("Expected full sync to be triggered, but lastFullSync was not updated")
+	}
+}

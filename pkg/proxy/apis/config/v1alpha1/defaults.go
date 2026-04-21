@@ -65,6 +65,9 @@ func SetDefaults_KubeProxyConfiguration(obj *kubeproxyconfigv1alpha1.KubeProxyCo
 	if obj.IPTables.MinSyncPeriod.Duration == 0 {
 		obj.IPTables.MinSyncPeriod = metav1.Duration{Duration: 1 * time.Second}
 	}
+	if obj.IPTables.FullSyncPeriod == nil {
+		obj.IPTables.FullSyncPeriod = &metav1.Duration{Duration: 1 * time.Hour}
+	}
 	if obj.IPTables.LocalhostNodePorts == nil {
 		obj.IPTables.LocalhostNodePorts = ptr.To(true)
 	}
@@ -76,6 +79,9 @@ func SetDefaults_KubeProxyConfiguration(obj *kubeproxyconfigv1alpha1.KubeProxyCo
 	}
 	if obj.NFTables.MinSyncPeriod.Duration == 0 {
 		obj.NFTables.MinSyncPeriod = metav1.Duration{Duration: 1 * time.Second}
+	}
+	if obj.NFTables.FullSyncPeriod == nil {
+		obj.NFTables.FullSyncPeriod = &metav1.Duration{Duration: 1 * time.Hour}
 	}
 
 	if obj.Conntrack.MaxPerCore == nil {

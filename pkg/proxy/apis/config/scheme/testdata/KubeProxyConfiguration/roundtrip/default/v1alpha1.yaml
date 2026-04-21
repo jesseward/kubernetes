@@ -25,6 +25,7 @@ enableProfiling: false
 healthzBindAddress: 0.0.0.0:10256
 hostnameOverride: ""
 iptables:
+  fullSyncPeriod: 1h0m0s
   localhostNodePorts: true
   masqueradeAll: false
   masqueradeBit: 14

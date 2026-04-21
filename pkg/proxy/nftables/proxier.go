@@ -102,6 +102,7 @@ func NewDualStackProxier(
 	ctx context.Context,
 	syncPeriod time.Duration,
 	minSyncPeriod time.Duration,
+	fullSyncPeriod time.Duration,
 	masqueradeAll bool,
 	masqueradeBit int,
 	localDetectors map[v1.IPFamily]proxyutil.LocalTrafficDetector,
@@ -114,7 +115,7 @@ func NewDualStackProxier(
 ) (proxy.Provider, error) {
 	// Create an ipv4 instance of the single-stack proxier
 	ipv4Proxier, err := NewProxier(ctx, v1.IPv4Protocol,
-		syncPeriod, minSyncPeriod, masqueradeAll, masqueradeBit,
+		syncPeriod, minSyncPeriod, fullSyncPeriod, masqueradeAll, masqueradeBit,
 		localDetectors[v1.IPv4Protocol], nodeName, nodeIPs[v1.IPv4Protocol],
 		recorder, healthzServer, nodePortAddresses, initOnly)
 	if err != nil {
@@ -122,7 +123,7 @@ func NewDualStackProxier(
 	}
 
 	ipv6Proxier, err := NewProxier(ctx, v1.IPv6Protocol,
-		syncPeriod, minSyncPeriod, masqueradeAll, masqueradeBit,
+		syncPeriod, minSyncPeriod, fullSyncPeriod, masqueradeAll, masqueradeBit,
 		localDetectors[v1.IPv6Protocol], nodeName, nodeIPs[v1.IPv6Protocol],
 		recorder, healthzServer, nodePortAddresses, initOnly)
 	if err != nil {
@@ -160,6 +161,7 @@ type Proxier struct {
 	initialized          int32
 	syncRunner           *runner.BoundedFrequencyRunner // governs calls to syncProxyRules
 	syncPeriod           time.Duration
+	fullSyncPeriod       time.Duration
 	flushed              bool
 
 	// These are effectively const and do not need the mutex to be held.
@@ -208,6 +210,7 @@ func NewProxier(ctx context.Context,
 	ipFamily v1.IPFamily,
 	syncPeriod time.Duration,
 	minSyncPeriod time.Duration,
+	fullSyncPeriod time.Duration,
 	masqueradeAll bool,
 	masqueradeBit int,
 	localDetector proxyutil.LocalTrafficDetector,
@@ -247,6 +250,7 @@ func NewProxier(ctx context.Context,
 		endpointsChanges:    proxy.NewEndpointsChangeTracker(ipFamily, nodeName, newEndpointInfo, nil),
 		needFullSync:        true,
 		syncPeriod:          syncPeriod,
+		fullSyncPeriod:      fullSyncPeriod,
 		nftables:            nft,
 		masqueradeAll:       masqueradeAll,
 		masqueradeMark:      masqueradeMark,
@@ -271,9 +275,13 @@ func NewProxier(ctx context.Context,
 		hairpinConnections:  newNFTElementStorage("set", hairpinConnectionsSet),
 	}
 
-	logger.V(2).Info("NFTables sync params", "minSyncPeriod", minSyncPeriod, "syncPeriod", syncPeriod, "maxSyncPeriod", proxyutil.FullSyncPeriod)
+	maxSyncPeriod := fullSyncPeriod
+	if maxSyncPeriod == 0 {
+		maxSyncPeriod = 24 * 365 * time.Hour // 1 year
+	}
+	logger.V(2).Info("NFTables sync params", "minSyncPeriod", minSyncPeriod, "syncPeriod", syncPeriod, "maxSyncPeriod", maxSyncPeriod)
 	// We need to pass *some* maxInterval to NewBoundedFrequencyRunner. time.Hour is arbitrary.
-	proxier.syncRunner = runner.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, proxyutil.FullSyncPeriod)
+	proxier.syncRunner = runner.NewBoundedFrequencyRunner("sync-runner", proxier.syncProxyRules, minSyncPeriod, syncPeriod, maxSyncPeriod)
 
 	return proxier, nil
 }
@@ -1076,7 +1084,7 @@ func (proxier *Proxier) syncProxyRules() (retryError error) {
 	// Below this point we will not return until we try to write the nftables rules.
 	//
 
-	doFullSync := proxier.needFullSync || (time.Since(proxier.lastFullSync) > proxyutil.FullSyncPeriod)
+	doFullSync := proxier.needFullSync || (proxier.fullSyncPeriod > 0 && time.Since(proxier.lastFullSync) > proxier.fullSyncPeriod)
 
 	defer func() {
 		metrics.SyncProxyRulesLatency.WithLabelValues(string(proxier.ipFamily)).Observe(metrics.SinceInSeconds(start))

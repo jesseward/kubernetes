@@ -44,6 +44,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/runner"
 	proxyutil "k8s.io/kubernetes/pkg/proxy/util"
 	proxyutiltest "k8s.io/kubernetes/pkg/proxy/util/testing"
+	klogtesting "k8s.io/klog/v2/ktesting"
 	netutils "k8s.io/utils/net"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/knftables"
@@ -4849,4 +4850,34 @@ func TestBadIPs(t *testing.T) {
 		`)
 
 	assertNFTablesTransactionEqual(t, getLine(), expected, nft.Dump())
+}
+
+func TestFullSyncPeriod(t *testing.T) {
+	klogtesting.NewTestContext(t)
+	_, fp := NewFakeProxier(v1.IPv4Protocol)
+
+	// Set fullSyncPeriod to 0 (disabled)
+	fp.fullSyncPeriod = 0
+	fp.needFullSync = false
+	fp.lastFullSync = time.Now().Add(-2 * time.Hour) // Long ago
+
+	fp.syncProxyRules()
+
+	// Verify that it did NOT do a full sync!
+	if fp.lastFullSync.Before(time.Now().Add(-1 * time.Hour)) {
+		// It was not updated! Success!
+	} else {
+		t.Errorf("Expected full sync to be disabled, but lastFullSync was updated")
+	}
+
+	// Now set fullSyncPeriod to 1h
+	fp.fullSyncPeriod = 1 * time.Hour
+	fp.syncProxyRules()
+
+	// Verify that it DID do a full sync!
+	if fp.lastFullSync.After(time.Now().Add(-1 * time.Minute)) {
+		// It was updated! Success!
+	} else {
+		t.Errorf("Expected full sync to be triggered, but lastFullSync was not updated")
+	}
 }
