@@ -1269,6 +1269,11 @@ func (m *kubeGenericRuntimeManager) computeInitContainerActions(ctx context.Cont
 			changes.InitContainersToStart[l-1-i], changes.InitContainersToStart[i]
 	}
 
+	if !changes.UpdatePodResources {
+		// If any starting containers have resized, we need to resize the pod resources.
+		changes.UpdatePodResources = m.startingResizedContainer(logger, pod, pod.Spec.InitContainers, changes.InitContainersToStart)
+	}
+
 	return podHasInitialized
 }
 

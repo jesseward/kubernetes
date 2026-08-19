@@ -1199,7 +1199,29 @@ func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *
 		changes.InitContainersToStart = nil
 	}
 
+	if !changes.UpdatePodResources {
+		// If any starting containers have resized, we need to resize the pod resources.
+		changes.UpdatePodResources = m.startingResizedContainer(logger, pod, pod.Spec.Containers, changes.ContainersToStart)
+	}
+
 	return changes
+}
+
+// startingResizedContainer reports whether any of the containersToStart have been resized.
+func (m *kubeGenericRuntimeManager) startingResizedContainer(logger klog.Logger, pod *v1.Pod, containers []v1.Container, containersToStart []int) bool {
+	for _, i := range containersToStart {
+		c := containers[i]
+		actuatedResources, ok := m.allocationManager.GetActuatedResources(pod.UID, c.Name)
+		if !ok {
+			logger.V(4).Info("Actuated resources missing for container", "pod", format.Pod(pod), "container", c.Name)
+		}
+		desired := containerResourcesFromRequirements(&c.Resources)
+		actuated := containerResourcesFromRequirements(&actuatedResources)
+		if desired != actuated {
+			return true
+		}
+	}
+	return false
 }
 
 // SyncPod syncs the running pod into the desired pod by executing following steps:
@@ -1208,9 +1230,9 @@ func (m *kubeGenericRuntimeManager) computePodActions(ctx context.Context, pod *
 //  2. Kill pod sandbox if necessary.
 //  3. Kill any containers that should not be running.
 //  4. Create sandbox if necessary.
-//  5. Create ephemeral containers.
-//  6. Create init containers.
-//  7. Resize running containers (if InPlacePodVerticalScaling==true)
+//  5. Resize pod & running containers (if InPlacePodVerticalScaling==true)
+//  6. Create ephemeral containers.
+//  7. Create init containers.
 //  8. Create normal containers.
 func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, backOff *flowcontrol.Backoff) (result kubecontainer.PodSyncResult) {
 	logger := klog.FromContext(ctx)
@@ -1411,6 +1433,13 @@ func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, po
 		return
 	}
 
+	// Step 5: Resize pod & running containers (if necessary).
+	if resizable, _, _ := allocation.IsInPlacePodVerticalScalingAllowed(pod); resizable {
+		if len(podContainerChanges.ContainersToUpdate) > 0 || podContainerChanges.UpdatePodResources {
+			result.SyncResults = append(result.SyncResults, m.doPodResizeAction(ctx, pod, podStatus, podContainerChanges))
+		}
+	}
+
 	// Helper containing boilerplate common to starting all types of containers.
 	// typeName is a description used to describe this type of container in log messages,
 	// currently: "container", "init container" or "ephemeral container"
@@ -1472,7 +1501,7 @@ func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, po
 		return nil
 	}
 
-	// Step 5: start ephemeral containers
+	// Step 6: start ephemeral containers
 	// These are started "prior" to init containers to allow running ephemeral containers even when there
 	// are errors starting an init container. In practice init containers will start first since ephemeral
 	// containers cannot be specified on pod creation.
@@ -1480,7 +1509,7 @@ func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, po
 		start(ctx, "ephemeral container", metrics.EphemeralContainer, ephemeralContainerStartSpec(&pod.Spec.EphemeralContainers[idx]))
 	}
 
-	// Step 6: start init containers.
+	// Step 7: start init containers.
 	for _, idx := range podContainerChanges.InitContainersToStart {
 		container := &pod.Spec.InitContainers[idx]
 		// Start the next init container.
@@ -1509,13 +1538,6 @@ func (m *kubeGenericRuntimeManager) SyncPod(ctx context.Context, pod *v1.Pod, po
 					m.podInitContainerTimeRecorder.RecordInitContainerFinished(pod.UID, cs.FinishedAt)
 				}
 			}
-		}
-	}
-
-	// Step 7: For containers in podContainerChanges.ContainersToUpdate[CPU,Memory] list, invoke UpdateContainerResources
-	if resizable, _, _ := allocation.IsInPlacePodVerticalScalingAllowed(pod); resizable {
-		if len(podContainerChanges.ContainersToUpdate) > 0 || podContainerChanges.UpdatePodResources {
-			result.SyncResults = append(result.SyncResults, m.doPodResizeAction(ctx, pod, podStatus, podContainerChanges))
 		}
 	}
 
